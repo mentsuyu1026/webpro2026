@@ -24,5 +24,5 @@ app.use(express.static("public"));
 app.use("/", router);
 
 app.listen(PORT, () => {
-  console.log(`サーバーが動いたぞ！: http://localhost:${PORT}`);
+  console.log(`サーバーを起動しました: http://localhost:${PORT}`);
 });

@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Prisma（データベースの通訳・設計 Step 5 の「Prisma/Model 層」）
-// PostgreSQL への接続をここ 1 か所にまとめておくぞ。
+// PostgreSQL への接続をここ 1 か所にまとめる。
 // 他のファイルはここから prisma を import して使う。
 // ─────────────────────────────────────────────────────────────
 import "dotenv/config";
@@ -8,7 +8,7 @@ import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
-// Render の外部接続には SSL が必要じゃ（デプロイ演習で成功した設定を引き継ぐ）
+// Render の外部接続には SSL が必要（デプロイ演習で成功した設定を引き継ぐ）
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
