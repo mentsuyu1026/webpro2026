@@ -29,11 +29,13 @@ app.get("/", async (req, res) => {
 // ユーザー追加ボタンが押された時の処理
 app.post("/users", async (req, res) => {
   const name = req.body.name;
+  const age = req.body.age ? Number(req.body.age) : null; // 数字に変換して受け取るぞ
   if (name) {
-    await prisma.user.create({ data: { name } });
+    await prisma.user.create({ data: { name, age } });
   }
   res.redirect("/");
 });
+
 
 app.listen(PORT, () => {
   console.log(`サーバーが動いたぞ！: http://localhost:${PORT}`);

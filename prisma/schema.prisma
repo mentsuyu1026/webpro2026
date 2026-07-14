@@ -15,5 +15,7 @@ datasource db {
 model User {
   id   Int    @id @default(autoincrement())
   name String
+  age  Int?   // 「?」をつけることで、年齢が分からない人がいても大丈夫にするぞ
 }
+
 
