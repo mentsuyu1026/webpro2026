@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>編集 - サブスク番人</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="container narrow">
+    <header>
+      <h1>✏️ サブスクを編集</h1>
+    </header>
+
+    <section class="add">
+      <form action="/subscriptions/<%= subscription.id %>/update" method="post" class="add-form">
+        <label>
+          サービス名
+          <input type="text" name="name" value="<%= subscription.name %>" required>
+        </label>
+        <label>
+          金額（円 / 月）
+          <input type="number" name="price" min="0" value="<%= subscription.price %>" required>
+        </label>
+        <label>
+          次の支払日
+          <input type="date" name="billingDate"
+            value="<%= subscription.billingDate.toISOString().slice(0, 10) %>" required>
+        </label>
+        <div class="row">
+          <button type="submit" class="btn">保存</button>
+          <a class="btn ghost" href="/">キャンセル</a>
+        </div>
+      </form>
+    </section>
+  </div>
+</body>
+
+</html>

@@ -12,10 +12,23 @@ datasource db {
   provider = "postgresql"
 }
 
+// ユーザー：誰が使っているか（設計 Step 3 の Users テーブル）
 model User {
-  id   Int    @id @default(autoincrement())
-  name String
-  age  Int?   // 「?」をつけることで、年齢が分からない人がいても大丈夫にするぞ
+  id            Int            @id @default(autoincrement())
+  email         String?        @unique // ログインや Gmail 連携に使うメールアドレス
+  name          String
+  subscriptions Subscription[] // 1 対 多：1 人のユーザーは複数のサブスクを持つ
 }
 
+// サブスクリプション：どんなサービスにいくら払っているか（設計 Step 3 の Subscriptions テーブル）
+model Subscription {
+  id          Int      @id @default(autoincrement())
+  userId      Int // 外部キー：どのユーザーのサブスクか
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String // サービス名（例: Netflix, YouTube Premium）
+  price       Int // 金額（円 / 月）
+  billingDate DateTime // 次の支払日
+  isActive    Boolean  @default(true) // 今も継続中かどうか
+  createdAt   DateTime @default(now())
+}
 

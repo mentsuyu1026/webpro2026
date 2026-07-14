@@ -1,41 +1,27 @@
+// ─────────────────────────────────────────────────────────────
+// アプリの入口（サブスク番人）
+// ここでは Express の準備をして、ルーターを取り付けるだけ。
+// 実際の処理は src/ 以下の各層（Router → Controller → Service → Prisma）に分けてある。
+// ─────────────────────────────────────────────────────────────
 import "dotenv/config";
 import express from "express";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "./generated/prisma/client";
-
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } 
-});
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter, log: ["query"] });
+import { router } from "./src/routes/subscriptions";
 
 const app = express();
 const PORT = process.env.PORT || 8888;
 
-// EJS を使って画面を表示する設定じゃ
+// EJS で画面を表示する設定
 app.set("view engine", "ejs");
 app.set("views", "./views");
-// フォームから送られてきたデータを受け取れるようにする設定じゃ
+
+// フォームから送られてきたデータを受け取れるようにする
 app.use(express.urlencoded({ extended: true }));
 
-// トップページ（/）にアクセスした時の処理
-app.get("/", async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.render("index", { users });
-});
+// public/ 以下（CSS など）を静的配信
+app.use(express.static("public"));
 
-// ユーザー追加ボタンが押された時の処理
-app.post("/users", async (req, res) => {
-  const name = req.body.name;
-  const age = req.body.age ? Number(req.body.age) : null; // 数字に変換して受け取るぞ
-  if (name) {
-    await prisma.user.create({ data: { name, age } });
-  }
-  res.redirect("/");
-});
-
+// ルーターを取り付ける
+app.use("/", router);
 
 app.listen(PORT, () => {
   console.log(`サーバーが動いたぞ！: http://localhost:${PORT}`);

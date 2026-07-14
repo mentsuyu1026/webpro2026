@@ -1,23 +1,138 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
-  <title>ユーザー一覧</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サブスク番人</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
-  <h1>ユーザー一覧（本番DBに接続中）</h1>
-  <ul>
-    <% users.forEach(user => { %>
-      <li><%= user.name %> (<%= user.age ? user.age + '歳' : '年齢未設定' %>)</li>
-    <% }) %>
-  </ul>
+  <div class="container">
+    <header>
+      <h1>🐑 サブスク番人</h1>
+      <p class="sub">払い続けているサブスクを、まとめて見張るのじゃ。</p>
+    </header>
 
-  <h2>ユーザーを追加するぞ</h2>
-  <form action="/users" method="post">
-    <input type="text" name="name" placeholder="名前" required>
-    <input type="number" name="age" placeholder="年齢">
-    <button type="submit">追加</button>
-  </form>
+    <% if (flash) { %>
+      <div class="flash"><%= flash %></div>
+    <% } %>
 
+    <!-- 合計金額（機能 B） -->
+    <section class="summary">
+      <div class="summary-total">
+        <span class="label">継続中の月額合計</span>
+        <span class="amount">¥<%= total.toLocaleString() %><small> / 月</small></span>
+      </div>
+      <div class="summary-count">
+        <span class="label">登録数</span>
+        <span class="amount"><%= subscriptions.length %><small> 件</small></span>
+      </div>
+    </section>
+
+    <!-- 更新通知（機能 D） -->
+    <% if (upcoming.length > 0) { %>
+      <section class="notice">
+        <h2>⏰ もうすぐ更新（<%= soonDays %>日以内）</h2>
+        <ul>
+          <% upcoming.forEach(s => { const d = daysUntil(s.billingDate); %>
+            <li>
+              <strong><%= s.name %></strong>（¥<%= s.price.toLocaleString() %>）—
+              <% if (d < 0) { %>
+                <span class="overdue"><%= -d %>日 前に更新日を過ぎています</span>
+              <% } else if (d === 0) { %>
+                <span class="today">今日が更新日じゃ！</span>
+              <% } else { %>
+                あと <span class="days"><%= d %></span> 日
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      </section>
+    <% } %>
+
+    <!-- 一覧（機能 B） -->
+    <section class="list">
+      <h2>登録中のサブスク</h2>
+      <% if (subscriptions.length === 0) { %>
+        <p class="empty">まだ登録がないぞ。下のフォームから追加してみるのじゃ。</p>
+      <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>サービス名</th>
+              <th class="right">金額(月)</th>
+              <th>次の支払日</th>
+              <th>状態</th>
+              <th class="right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% subscriptions.forEach(s => { %>
+              <tr class="<%= s.isActive ? '' : 'inactive' %>">
+                <td><%= s.name %></td>
+                <td class="right">¥<%= s.price.toLocaleString() %></td>
+                <td><%= s.billingDate.toISOString().slice(0, 10) %></td>
+                <td>
+                  <% if (s.isActive) { %>
+                    <span class="badge active">継続中</span>
+                  <% } else { %>
+                    <span class="badge stopped">停止中</span>
+                  <% } %>
+                </td>
+                <td class="right actions">
+                  <a class="btn small" href="/subscriptions/<%= s.id %>/edit">編集</a>
+                  <form action="/subscriptions/<%= s.id %>/toggle" method="post">
+                    <button type="submit" class="btn small ghost">
+                      <%= s.isActive ? '停止' : '再開' %>
+                    </button>
+                  </form>
+                  <form action="/subscriptions/<%= s.id %>/delete" method="post"
+                    onsubmit="return confirm('「<%= s.name %>」を削除しますか？');">
+                    <button type="submit" class="btn small danger">削除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+
+    <!-- 手動登録フォーム（機能 A） -->
+    <section class="add">
+      <h2>➕ サブスクを登録する</h2>
+      <form action="/subscriptions" method="post" class="add-form">
+        <label>
+          サービス名
+          <input type="text" name="name" placeholder="Netflix など" required>
+        </label>
+        <label>
+          金額（円 / 月）
+          <input type="number" name="price" min="0" placeholder="990" required>
+        </label>
+        <label>
+          次の支払日
+          <input type="date" name="billingDate" required>
+        </label>
+        <button type="submit" class="btn">登録</button>
+      </form>
+    </section>
+
+    <!-- Gmail 同期（機能 C・雛形） -->
+    <section class="gmail">
+      <h2>📧 Gmail から自動で取り込む</h2>
+      <p class="muted">領収書・請求メールからサブスクを探して取り込む機能じゃ（設定が必要）。</p>
+      <form action="/sync-gmail" method="post">
+        <button type="submit" class="btn ghost">Gmail と同期する</button>
+      </form>
+    </section>
+
+    <footer>
+      <p class="muted">Node.js · Express · EJS · Prisma · PostgreSQL</p>
+    </footer>
+  </div>
 </body>
+
 </html>
