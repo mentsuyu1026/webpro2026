@@ -54,7 +54,7 @@ export async function syncGmail(userId: number): Promise<SyncResult> {
   // 1. 継続課金（サブスク）っぽいメールに絞って検索（インプット）
   //    単発購入や広告を減らすため、月額・自動更新などのワードで検索する。
   const query =
-    '"月額" OR "自動更新" OR "定期購入" OR "サブスクリプション" OR subscription OR "recurring" OR "次回のお支払い" OR "自動的に更新"';
+    '"月額" OR "自動更新" OR "定期購入" OR "サブスクリプション" OR subscription OR "recurring" OR "次回のお支払い" OR "自動的に更新" OR "お支払い" OR "ご請求" OR "領収"';
   const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 200 });
   console.log("ヒット件数:", list.data.messages?.length ?? 0);
 
@@ -141,15 +141,26 @@ function collectText(payload: any): string {
   return text;
 }
 
+// 全角の数字・記号を半角に直す（日本語メールは「１，９８０円」等が多い）
+function normalize(s: string): string {
+  return s
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/，/g, ",")
+    .replace(/．/g, ".")
+    .replace(/￥/g, "¥");
+}
+
 // 本文から金額（円）を抽出する
 function extractPrice(text: string): number | null {
+  const t = normalize(text);
   const patterns = [
-    /[¥￥]\s?([0-9,]+)/, // ¥1,980
-    /([0-9,]+)\s?円/, // 1,980円 / 月額980円
+    /¥\s?([0-9,]+)/, // ¥1,980
+    /([0-9,]+)\s?円/, // 1,980円 / 月額980円 / 1,980円(税込)
     /JPY\s?([0-9,]+)/i, // JPY 1980
+    /([0-9,]+)\s?JPY/i, // 1980 JPY
   ];
   for (const re of patterns) {
-    const m = text.match(re);
+    const m = t.match(re);
     if (m) {
       const n = parseInt(m[1].replace(/,/g, ""), 10);
       if (Number.isFinite(n) && n > 0) return n;
@@ -213,16 +224,16 @@ function parseSubscriptionFromMessage(message: any): ParseResult {
   const text = raw.replace(/<[^>]+>/g, " ");
   const haystack = subject + "\n" + text; // 件名も判定に含める
 
-  // 金額が取れないメールはサブスクとみなさない
-  const price = extractPrice(text);
-  if (price == null) return { skip: "金額なし" };
-
-  // 広告・返金は除外
+  // 広告・返金はまず除外
   if (REFUND_RE.test(haystack)) return { skip: "返金/キャンセル" };
   if (PROMO_RE.test(haystack)) return { skip: "広告/宣伝" };
 
   // 継続課金の手がかりが無ければ単発購入とみなして除外
   if (!RECURRING_RE.test(haystack)) return { skip: "継続課金の手がかりなし" };
+
+  // 金額は取れれば使い、取れなければ 0（あとで画面から編集してもらう）。
+  // ここまで来た＝サブスクらしいメールなので、金額不明でも取り込む。
+  const price = extractPrice(text) ?? 0;
 
   return {
     sub: {

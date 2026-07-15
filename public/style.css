@@ -221,6 +221,16 @@ tr.inactive td {
   color: var(--muted);
 }
 
+.check {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #fff2e0;
+  color: var(--warn);
+}
+
 /* フォーム */
 .add-form {
   display: flex;

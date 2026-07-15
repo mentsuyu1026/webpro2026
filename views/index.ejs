@@ -82,7 +82,13 @@
             <% subscriptions.forEach(s => { %>
               <tr class="<%= s.isActive ? '' : 'inactive' %>">
                 <td><%= s.name %></td>
-                <td class="right">¥<%= s.price.toLocaleString() %></td>
+                <td class="right">
+                  <% if (s.price === 0) { %>
+                    <span class="check">要確認</span>
+                  <% } else { %>
+                    ¥<%= s.price.toLocaleString() %>
+                  <% } %>
+                </td>
                 <td><%= s.billingDate.toISOString().slice(0, 10) %></td>
                 <td>
                   <% if (s.isActive) { %>
