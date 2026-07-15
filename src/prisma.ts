@@ -23,19 +23,7 @@ export async function disconnect() {
   await Promise.all([prisma.$disconnect(), pool.end()]);
 }
 
-// ─────────────────────────────────────────────────────────────
-// デモ用ユーザーの取得（ログイン機能は設計 Step 5 の発展課題）
-// 今はログイン画面を作らず、固定の「デモユーザー」を 1 人使う。
-// Users テーブルと Subscriptions テーブルの 1 対多の関係はそのまま活きている。
-// 将来ログイン（Cookie / セッション）を足すときは、ここを
-// 「ログイン中のユーザーを返す」処理に差し替えればよい。
-// ─────────────────────────────────────────────────────────────
-const DEMO_EMAIL = "demo@example.com";
-
-export async function getCurrentUser() {
-  return prisma.user.upsert({
-    where: { email: DEMO_EMAIL },
-    update: {},
-    create: { email: DEMO_EMAIL, name: "ゲスト" },
-  });
+// ログイン中のユーザーを ID で取得する（セッションの userId から引く）
+export async function getUserById(id: number) {
+  return prisma.user.findUnique({ where: { id } });
 }

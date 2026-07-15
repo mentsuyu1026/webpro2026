@@ -18,22 +18,28 @@ export type SyncResult = {
   message: string;
 };
 
-function isConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_CLIENT_ID &&
-      process.env.GOOGLE_CLIENT_SECRET &&
-      process.env.GOOGLE_REFRESH_TOKEN
-  );
-}
-
-// Gmail から領収書メールを探してサブスク候補を保存する
+// Gmail から領収書メールを探してサブスク候補を保存する。
+// ログイン中ユーザー自身の Google リフレッシュトークンを使う
+// （無ければ .env の GOOGLE_REFRESH_TOKEN にフォールバック）。
 export async function syncGmail(userId: number): Promise<SyncResult> {
-  if (!isConfigured()) {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return {
       configured: false,
       found: 0,
       message:
-        "Gmail 連携はまだ設定されていません。googleapis の導入と Google OAuth の認証情報（.env）が必要です。",
+        "Gmail 連携が未設定です。GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET を .env に設定してください。",
+    };
+  }
+
+  // このユーザーのリフレッシュトークンを取得
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const refreshToken = user?.googleRefreshToken ?? process.env.GOOGLE_REFRESH_TOKEN;
+  if (!refreshToken) {
+    return {
+      configured: false,
+      found: 0,
+      message:
+        "Gmail の読み取り許可がありません。一度ログアウトして Google で再ログインすると連携できます。",
     };
   }
 
@@ -42,7 +48,7 @@ export async function syncGmail(userId: number): Promise<SyncResult> {
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI
   );
-  auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  auth.setCredentials({ refresh_token: refreshToken });
   const gmail = google.gmail({ version: "v1", auth });
 
   // 1. 継続課金（サブスク）っぽいメールに絞って検索（インプット）

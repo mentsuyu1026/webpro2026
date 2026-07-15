@@ -10,9 +10,19 @@
 
 <body>
   <div class="container">
-    <header>
-      <h1>サブスク番人</h1>
-      <p class="sub">払い続けているサブスクを、まとめて管理します。</p>
+    <header class="app-header">
+      <div>
+        <h1>サブスク番人</h1>
+        <p class="sub">払い続けているサブスクを、まとめて管理します。</p>
+      </div>
+      <div class="user-box">
+        <% if (user) { %>
+          <span class="user-name"><%= user.name %></span>
+        <% } %>
+        <form action="/logout" method="post">
+          <button type="submit" class="btn small ghost">ログアウト</button>
+        </form>
+      </div>
     </header>
 
     <% if (flash) { %>

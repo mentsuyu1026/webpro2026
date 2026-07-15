@@ -14,10 +14,11 @@ datasource db {
 
 // ユーザー：誰が使っているか（設計 Step 3 の Users テーブル）
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String?        @unique // ログインや Gmail 連携に使うメールアドレス
-  name          String
-  subscriptions Subscription[] // 1 対 多：1 人のユーザーは複数のサブスクを持つ
+  id                 Int            @id @default(autoincrement())
+  email              String?        @unique // ログインや Gmail 連携に使うメールアドレス
+  name               String
+  googleRefreshToken String? // Google ログイン時に取得。このユーザーの Gmail 連携に使う
+  subscriptions      Subscription[] // 1 対 多：1 人のユーザーは複数のサブスクを持つ
 }
 
 // サブスクリプション：どんなサービスにいくら払っているか（設計 Step 3 の Subscriptions テーブル）
