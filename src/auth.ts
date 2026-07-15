@@ -43,6 +43,7 @@ authRouter.get("/auth/google", (req, res) => {
     access_type: "offline", // リフレッシュトークンを得るため
     prompt: "consent", // 毎回同意を求めてリフレッシュトークンを確実に受け取る
     scope: SCOPES,
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI, // 明示的に付与
   });
   res.redirect(url);
 });

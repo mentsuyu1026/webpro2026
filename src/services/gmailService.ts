@@ -55,7 +55,7 @@ export async function syncGmail(userId: number): Promise<SyncResult> {
   //    単発購入や広告を減らすため、月額・自動更新などのワードで検索する。
   const query =
     '"月額" OR "自動更新" OR "定期購入" OR "サブスクリプション" OR subscription OR "recurring" OR "次回のお支払い" OR "自動的に更新"';
-  const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 30 });
+  const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 200 });
   console.log("ヒット件数:", list.data.messages?.length ?? 0);
 
   // 既存のサブスク名を集めておき、重複登録を防ぐ
