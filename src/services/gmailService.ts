@@ -203,14 +203,16 @@ function extractDate(message: any): Date {
 type ParsedSub = { name: string; price: number; billingDate: Date };
 type ParseResult = { sub: ParsedSub } | { skip: string };
 
-// 広告・宣伝メールの手がかり（これらが含まれるメールは除外）
+// 広告・宣伝メールの手がかり。※ 件名だけを見る。
+// （サブスクの規約・特典説明に「セール」「割引」等が本文に出てくるので、
+//   本文まで見ると本物のサブスクまで誤除外してしまう）
 const PROMO_RE =
-  /(OFF|オフ|半額|セール|SALE|クーポン|キャンペーン|割引|お得|始めてみません|ポイント|%|％|プレゼント|今なら)/i;
-// 返金・キャンセルの手がかり（除外）
-const REFUND_RE = /(refund|refunded|返金|払い戻し|キャンセル|返品)/i;
+  /(OFF|オフ|半額|セール|SALE|クーポン|キャンペーン|割引|お得|始めてみません|ポイント|%|％|プレゼント|今なら|見逃し|限定|突破記念)/i;
+// 返金メールの手がかり（除外）。「キャンセル」は規約説明で頻出するため含めない。
+const REFUND_RE = /(refund|refunded|返金|払い戻し)/i;
 // 継続課金（サブスク）である手がかり（これが無いメールは除外）
 const RECURRING_RE =
-  /(月額|年額|自動更新|自動的に更新|定期購入|定期便|サブスクリプション|次回のお支払い|次回請求|継続課金|subscription|recurring|monthly|renew|will\s+renew|next\s+billing)/i;
+  /(月額|月毎|年額|自動更新|自動で更新|自動的に更新|定期購入|定期便|サブスクリプション|プライム会員|会員資格|次回のお支払い|次回請求|継続課金|毎月.*請求|subscription|recurring|monthly|renew|will\s+renew|next\s+billing)/i;
 
 // メール 1 通から { name, price, billingDate } を推定する。
 // サブスクとみなせない場合は理由付きで skip を返す。
@@ -222,11 +224,12 @@ function parseSubscriptionFromMessage(message: any): ParseResult {
   // snippet（短い抜粋）＋ 本文を解析対象にし、HTML タグは除去する
   const raw = (message.snippet ?? "") + "\n" + collectText(payload);
   const text = raw.replace(/<[^>]+>/g, " ");
-  const haystack = subject + "\n" + text; // 件名も判定に含める
+  const haystack = subject + "\n" + text; // 継続課金判定は件名＋本文
 
-  // 広告・返金はまず除外
-  if (REFUND_RE.test(haystack)) return { skip: "返金/キャンセル" };
-  if (PROMO_RE.test(haystack)) return { skip: "広告/宣伝" };
+  // 広告は「件名」に宣伝ワードがあるものだけ除外（本文中の付随的な言及は無視）
+  if (PROMO_RE.test(subject)) return { skip: "広告/宣伝" };
+  // 返金メールを除外
+  if (REFUND_RE.test(haystack)) return { skip: "返金" };
 
   // 継続課金の手がかりが無ければ単発購入とみなして除外
   if (!RECURRING_RE.test(haystack)) return { skip: "継続課金の手がかりなし" };
