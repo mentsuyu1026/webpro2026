@@ -40,6 +40,19 @@ export async function ocrImage(buffer: Buffer): Promise<string> {
   return data.text ?? "";
 }
 
+// OCR で崩れた日本語サービス名を整える
+// （tesseract は日本語を 1 文字ずつ空けたり、末尾に余計なカナを付けがち）
+function cleanName(s: string): string {
+  let n = s.trim();
+  // 末尾に紛れ込む孤立した 1 文字カナ（ン / ソ / て 等の誤認識）を除去
+  n = n.replace(/\s[぀-ヿ]$/, "").trim();
+  // 日本語文字どうしの間の空白を詰める（例:「プ ラ イ ム」→「プライム」）
+  for (let i = 0; i < 6; i++) {
+    n = n.replace(/([぀-ヿ一-鿿])\s+([぀-ヿ一-鿿])/g, "$1$2");
+  }
+  return n.replace(/\s{2,}/g, " ").trim();
+}
+
 // OCR テキストから「サービス名＋金額」の候補を抜き出す
 export function extractCandidates(text: string): Candidate[] {
   const out: Candidate[] = [];
@@ -61,6 +74,8 @@ export function extractCandidates(text: string): Candidate[] {
       .replace(/[|:：\-—―・_>＞．.]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+
+    name = cleanName(name);
 
     if (name.length < 2) name = "（名称不明）";
     if (name.length > 40) name = name.slice(0, 40);
