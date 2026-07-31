@@ -1,0 +1,23 @@
+<header class="app-header">
+  <div>
+    <h1><a href="/" class="brand">サブスク番人</a></h1>
+    <p class="sub">払い続けているサブスクを、まとめて管理します。</p>
+  </div>
+  <div class="user-box">
+    <% if (typeof picture !== 'undefined' && picture) { %>
+      <img class="avatar" src="<%= picture %>" alt="<%= user ? user.name : '' %>"
+        title="<%= user ? user.name : '' %>" referrerpolicy="no-referrer">
+    <% } else if (user) { %>
+      <span class="avatar avatar-fallback" title="<%= user.name %>"><%= user.name.charAt(0) %></span>
+    <% } %>
+    <form action="/logout" method="post">
+      <button type="submit" class="btn small ghost">ログアウト</button>
+    </form>
+  </div>
+</header>
+
+<nav class="tabs">
+  <a href="/" class="tab <%= active === 'home' ? 'active' : '' %>">ホーム</a>
+  <a href="/calendar" class="tab <%= active === 'calendar' ? 'active' : '' %>">カレンダー</a>
+  <a href="/import" class="tab <%= active === 'import' ? 'active' : '' %>">明細から追加</a>
+</nav>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>候補の選択 - サブスク番人</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <%- include('partials/header', { active: 'import' }) %>
+
+    <section class="add">
+      <h2>読み取り結果からサブスクを選ぶ</h2>
+      <% if (candidates.length === 0) { %>
+        <p class="empty">金額を含む候補が見つかりませんでした。別のスクショで試すか、ホームから手動で追加してください。</p>
+        <a class="btn ghost" href="/import">やり直す</a>
+      <% } else { %>
+        <p class="muted">サブスクとして追加したいものにチェックを入れて「追加する」を押してください。</p>
+        <form action="/import/confirm" method="post">
+          <table class="cand-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>サービス名（編集可）</th>
+                <th class="right">金額(月)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% candidates.forEach((c, i) => { %>
+                <tr>
+                  <td><input type="checkbox" name="pick" value="<%= i %>"></td>
+                  <td>
+                    <input type="text" name="name_<%= i %>" value="<%= c.name %>">
+                  </td>
+                  <td class="right">
+                    ¥<input type="number" name="price_<%= i %>" value="<%= c.price %>" min="0" class="price-input">
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <div class="row" style="margin-top:16px;">
+            <button type="submit" class="btn">追加する</button>
+            <a class="btn ghost" href="/import">やり直す</a>
+          </div>
+        </form>
+      <% } %>
+    </section>
+  </div>
+</body>
+
+</html>

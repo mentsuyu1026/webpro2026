@@ -38,9 +38,13 @@ prisma/schema.prisma             データ設計（User 1 - n Subscription）
 - A. 手動登録（サービス名・金額・次の支払日）
 - B. 一覧表示と継続中の月額合計
 - C. Gmail から自動取り込み（ログイン中ユーザー自身の Gmail を読み取り、領収書メールからサブスクを抽出）
-- D. 更新通知（支払日が 7 日以内 / 過ぎているサブスクをダッシュボード上部に表示）
+- D. 更新通知（次回更新日が 7 日以内のサブスクをダッシュボード上部に表示）
 - サブスクの編集・停止/再開・削除
 - **Google ログイン**：各ユーザーが自分の Google アカウントでログインし、自分のデータだけを扱う（セッション管理）
+- **更新カレンダー**（別タブ）：更新日を色付き表示、日付クリックでその日更新のサブスクを一覧表示
+- **明細から追加**（別タブ）：利用明細スクショを OCR（tesseract.js）し、サブスク候補を選んで追加
+
+画面は「ホーム / カレンダー / 明細から追加」の3タブ構成。
 
 ## セットアップと起動
 
@@ -49,7 +53,7 @@ prisma/schema.prisma             データ設計（User 1 - n Subscription）
 ```bash
 # 1. 依存関係（未インストールなら）
 npm install
-npm install express-session googleapis
+npm install express-session googleapis multer tesseract.js
 
 # 2. DB にテーブルを作成し、Prisma Client を生成
 npx prisma migrate dev --name add_google_auth

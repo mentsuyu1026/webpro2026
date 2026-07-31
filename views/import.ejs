@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>明細から追加 - サブスク番人</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <%- include('partials/header', { active: 'import' }) %>
+
+    <% if (flash) { %>
+      <div class="flash"><%= flash %></div>
+    <% } %>
+
+    <section class="add">
+      <h2>🧾 利用明細のスクショから追加</h2>
+      <p class="muted">
+        クレジットカードやアプリストアの利用明細のスクリーンショットをアップロードすると、
+        文字認識（OCR）でサブスク候補を抽出します。読み取り後、サブスクだけを選んで追加できます。
+      </p>
+      <form action="/import" method="post" enctype="multipart/form-data" class="upload-form"
+        onsubmit="document.getElementById('go').disabled = true; document.getElementById('go').textContent = '読み取り中…';">
+        <input type="file" name="screenshot" accept="image/*" required>
+        <button type="submit" id="go" class="btn">読み取る</button>
+      </form>
+      <p class="muted note-small">※ 初回は文字認識データのダウンロードで少し時間がかかります。</p>
+    </section>
+  </div>
+</body>
+
+</html>

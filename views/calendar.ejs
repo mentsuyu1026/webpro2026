@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>更新カレンダー - サブスク番人</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <%- include('partials/header', { active: 'calendar' }) %>
+
+    <section class="calendar">
+      <h2>📅 更新カレンダー</h2>
+      <div class="cal-head">
+        <button id="cal-prev" class="btn small ghost" type="button">◀</button>
+        <span id="cal-title"></span>
+        <button id="cal-next" class="btn small ghost" type="button">▶</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-detail" id="cal-detail">
+        <p class="muted">色の付いた日付をクリックすると、その日に更新が来るサブスクを表示します。</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const SUBS = <%- JSON.stringify(calendarData).replace(/</g, '\\u003c') %>;
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const yen = (n) => '¥' + n.toLocaleString();
+
+      const byDay = {};
+      SUBS.forEach((s) => { (byDay[s.day] = byDay[s.day] || []).push(s); });
+
+      const grid = document.getElementById('cal-grid');
+      const title = document.getElementById('cal-title');
+      const detail = document.getElementById('cal-detail');
+      const WD = ['日', '月', '火', '水', '木', '金', '土'];
+      const now = new Date();
+      let y = now.getFullYear(), m = now.getMonth();
+
+      function render() {
+        grid.innerHTML = '';
+        title.textContent = y + '年' + (m + 1) + '月';
+        WD.forEach((w, i) => {
+          const c = document.createElement('div');
+          c.className = 'cal-wd' + (i === 0 ? ' sun' : '') + (i === 6 ? ' sat' : '');
+          c.textContent = w;
+          grid.appendChild(c);
+        });
+        const first = new Date(y, m, 1).getDay();
+        const days = new Date(y, m + 1, 0).getDate();
+        for (let i = 0; i < first; i++) {
+          const e = document.createElement('div');
+          e.className = 'cal-cell empty';
+          grid.appendChild(e);
+        }
+        for (let d = 1; d <= days; d++) {
+          const cell = document.createElement('div');
+          cell.className = 'cal-cell';
+          const subs = byDay[d] || [];
+          if (subs.length) cell.classList.add('has-renewal');
+          if (y === now.getFullYear() && m === now.getMonth() && d === now.getDate())
+            cell.classList.add('today');
+          cell.innerHTML = '<span class="d">' + d + '</span>' +
+            (subs.length ? '<span class="dot">' + subs.length + '</span>' : '');
+          if (subs.length) cell.addEventListener('click', () => showDay(d, subs, cell));
+          grid.appendChild(cell);
+        }
+      }
+
+      function showDay(d, subs, cell) {
+        grid.querySelectorAll('.cal-cell.selected').forEach((x) => x.classList.remove('selected'));
+        cell.classList.add('selected');
+        let total = 0;
+        let html = '<h3>' + (m + 1) + '月' + d + '日 に更新</h3><ul class="cal-list">';
+        subs.forEach((s) => {
+          total += s.price;
+          html += '<li><span>' + esc(s.name) + '</span><span>' +
+            (s.price ? yen(s.price) : '要確認') + '</span></li>';
+        });
+        html += '</ul><p class="cal-sum">合計 ' + yen(total) + '</p>';
+        detail.innerHTML = html;
+      }
+
+      document.getElementById('cal-prev').addEventListener('click', () => {
+        m--; if (m < 0) { m = 11; y--; } render();
+      });
+      document.getElementById('cal-next').addEventListener('click', () => {
+        m++; if (m > 11) { m = 0; y++; } render();
+      });
+      render();
+    })();
+  </script>
+</body>
+
+</html>
