@@ -4,7 +4,8 @@
 // 「サービス名＋金額」の候補を抜き出す。
 // OCR には tesseract.js（無料・APIキー不要）を使う。
 // ─────────────────────────────────────────────────────────────
-import { recognize } from "tesseract.js";
+// tesseract.js は重いので、起動時ではなく OCR 実行時に遅延読み込みする
+// （起動時 import で失敗するとアプリ全体が落ちるのを防ぐ）
 
 export type Candidate = { name: string; price: number };
 
@@ -33,6 +34,8 @@ function priceOf(line: string): number | null {
 
 // 画像（バッファ）を OCR してテキストにする
 export async function ocrImage(buffer: Buffer): Promise<string> {
+  const mod: any = await import("tesseract.js"); // 実行時に読み込む
+  const recognize = mod.recognize ?? mod.default?.recognize;
   const { data } = await recognize(buffer, "jpn+eng");
   return data.text ?? "";
 }
