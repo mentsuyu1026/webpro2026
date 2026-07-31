@@ -9,6 +9,14 @@
 </head>
 
 <body>
+  <%
+    // 日付を「YYYY-MM-DD」形式（ローカル時刻）で表示するための小関数
+    function fmt(dt) {
+      return dt.getFullYear() + '-' +
+        String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+        String(dt.getDate()).padStart(2, '0');
+    }
+  %>
   <div class="container">
     <header class="app-header">
       <div>
@@ -16,8 +24,11 @@
         <p class="sub">払い続けているサブスクを、まとめて管理します。</p>
       </div>
       <div class="user-box">
-        <% if (user) { %>
-          <span class="user-name"><%= user.name %></span>
+        <% if (picture) { %>
+          <img class="avatar" src="<%= picture %>" alt="<%= user ? user.name : '' %>"
+            title="<%= user ? user.name : '' %>" referrerpolicy="no-referrer">
+        <% } else if (user) { %>
+          <span class="avatar avatar-fallback" title="<%= user.name %>"><%= user.name.charAt(0) %></span>
         <% } %>
         <form action="/logout" method="post">
           <button type="submit" class="btn small ghost">ログアウト</button>
@@ -46,21 +57,33 @@
       <section class="notice">
         <h2>⏰ もうすぐ更新（<%= soonDays %>日以内）</h2>
         <ul>
-          <% upcoming.forEach(s => { const d = daysUntil(s.billingDate); %>
+          <% upcoming.forEach(s => { const nr = nextRenewal(s.billingDate); const d = daysUntil(nr); %>
             <li>
-              <strong><%= s.name %></strong>（¥<%= s.price.toLocaleString() %>）—
-              <% if (d < 0) { %>
-                <span class="overdue"><%= -d %>日 前に更新日を過ぎています</span>
-              <% } else if (d === 0) { %>
+              <strong><%= s.name %></strong>（<%= s.price ? '¥' + s.price.toLocaleString() : '要確認' %>）—
+              <% if (d === 0) { %>
                 <span class="today">今日が更新日です</span>
               <% } else { %>
-                あと <span class="days"><%= d %></span> 日
+                あと <span class="days"><%= d %></span> 日（<%= fmt(nr) %>）
               <% } %>
             </li>
           <% }) %>
         </ul>
       </section>
     <% } %>
+
+    <!-- 更新カレンダー -->
+    <section class="calendar">
+      <h2>📅 更新カレンダー</h2>
+      <div class="cal-head">
+        <button id="cal-prev" class="btn small ghost" type="button">◀</button>
+        <span id="cal-title"></span>
+        <button id="cal-next" class="btn small ghost" type="button">▶</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-detail" id="cal-detail">
+        <p class="muted">色の付いた日付をクリックすると、その日に更新が来るサブスクを表示します。</p>
+      </div>
+    </section>
 
     <!-- 一覧（機能 B） -->
     <section class="list">
@@ -73,7 +96,7 @@
             <tr>
               <th>サービス名</th>
               <th class="right">金額(月)</th>
-              <th>次の支払日</th>
+              <th>次の更新日</th>
               <th>状態</th>
               <th class="right">操作</th>
             </tr>
@@ -89,7 +112,7 @@
                     ¥<%= s.price.toLocaleString() %>
                   <% } %>
                 </td>
-                <td><%= s.billingDate.toISOString().slice(0, 10) %></td>
+                <td><%= fmt(nextRenewal(s.billingDate)) %></td>
                 <td>
                   <% if (s.isActive) { %>
                     <span class="badge active">継続中</span>
@@ -136,10 +159,19 @@
       </form>
     </section>
 
-    <!-- Gmail 同期（機能 C・雛形） -->
+    <!-- Gmail 同期（機能 C） -->
     <section class="gmail">
-      <h2>📧 Gmail から自動で取り込む</h2>
-      <p class="muted">領収書・請求メールからサブスクを探して取り込む機能です（設定が必要）。</p>
+      <h2>
+        <svg class="gmail-icon" width="24" height="19" viewBox="0 0 52 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3.5 40h9V21.4L0 12v24.5A3.5 3.5 0 0 0 3.5 40z" fill="#4285F4" />
+          <path d="M39.5 40h9a3.5 3.5 0 0 0 3.5-3.5V12l-12.5 9.4V40z" fill="#34A853" />
+          <path d="M39.5 3.5v17.9L52 12V5.3c0-3.9-4.5-6.1-7.6-3.8L39.5 3.5z" fill="#FBBC04" />
+          <path d="M12.5 21.4V3.5L26 13.6 39.5 3.5v17.9L26 31.5 12.5 21.4z" fill="#EA4335" />
+          <path d="M0 5.3V12l12.5 9.4V3.5L7.6 1.5C4.5-.8 0 1.4 0 5.3z" fill="#C5221F" />
+        </svg>
+        Gmail から自動で取り込む
+      </h2>
+      <p class="muted">領収書・請求メールからサブスクを探して取り込みます。</p>
       <form action="/sync-gmail" method="post">
         <button type="submit" class="btn ghost">Gmail と同期する</button>
       </form>
@@ -149,6 +181,78 @@
       <p class="muted">Node.js · Express · EJS · Prisma · PostgreSQL</p>
     </footer>
   </div>
+
+  <script>
+    (function () {
+      const SUBS = <%- JSON.stringify(calendarData).replace(/</g, '\\u003c') %>;
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const yen = (n) => '¥' + n.toLocaleString();
+
+      // 「毎月この日に更新」— 日ごとにサブスクをまとめる
+      const byDay = {};
+      SUBS.forEach((s) => { (byDay[s.day] = byDay[s.day] || []).push(s); });
+
+      const grid = document.getElementById('cal-grid');
+      const title = document.getElementById('cal-title');
+      const detail = document.getElementById('cal-detail');
+      const WD = ['日', '月', '火', '水', '木', '金', '土'];
+      const now = new Date();
+      let y = now.getFullYear(), m = now.getMonth();
+
+      function render() {
+        grid.innerHTML = '';
+        title.textContent = y + '年' + (m + 1) + '月';
+        WD.forEach((w, i) => {
+          const c = document.createElement('div');
+          c.className = 'cal-wd' + (i === 0 ? ' sun' : '') + (i === 6 ? ' sat' : '');
+          c.textContent = w;
+          grid.appendChild(c);
+        });
+        const first = new Date(y, m, 1).getDay();
+        const days = new Date(y, m + 1, 0).getDate();
+        for (let i = 0; i < first; i++) {
+          const e = document.createElement('div');
+          e.className = 'cal-cell empty';
+          grid.appendChild(e);
+        }
+        for (let d = 1; d <= days; d++) {
+          const cell = document.createElement('div');
+          cell.className = 'cal-cell';
+          const subs = byDay[d] || [];
+          if (subs.length) cell.classList.add('has-renewal');
+          if (y === now.getFullYear() && m === now.getMonth() && d === now.getDate())
+            cell.classList.add('today');
+          cell.innerHTML = '<span class="d">' + d + '</span>' +
+            (subs.length ? '<span class="dot">' + subs.length + '</span>' : '');
+          if (subs.length) cell.addEventListener('click', () => showDay(d, subs, cell));
+          grid.appendChild(cell);
+        }
+      }
+
+      function showDay(d, subs, cell) {
+        grid.querySelectorAll('.cal-cell.selected').forEach((x) => x.classList.remove('selected'));
+        cell.classList.add('selected');
+        let total = 0;
+        let html = '<h3>' + (m + 1) + '月' + d + '日 に更新</h3><ul class="cal-list">';
+        subs.forEach((s) => {
+          total += s.price;
+          html += '<li><span>' + esc(s.name) + '</span><span>' +
+            (s.price ? yen(s.price) : '要確認') + '</span></li>';
+        });
+        html += '</ul><p class="cal-sum">合計 ' + yen(total) + '</p>';
+        detail.innerHTML = html;
+      }
+
+      document.getElementById('cal-prev').addEventListener('click', () => {
+        m--; if (m < 0) { m = 11; y--; } render();
+      });
+      document.getElementById('cal-next').addEventListener('click', () => {
+        m++; if (m > 11) { m = 0; y++; } render();
+      });
+      render();
+    })();
+  </script>
 </body>
 
 </html>

@@ -71,24 +71,44 @@ export function totalMonthly(subs: Sub[]): number {
     .reduce((sum, s) => sum + s.price, 0);
 }
 
-// 今日から支払日までの残り日数（過去なら負の数）
-export function daysUntil(billingDate: Date): number {
+// 今日から指定日までの残り日数（過去なら負の数）
+export function daysUntil(date: Date): number {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const target = new Date(
-    billingDate.getFullYear(),
-    billingDate.getMonth(),
-    billingDate.getDate()
-  );
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const ms = target.getTime() - start.getTime();
   return Math.round(ms / (1000 * 60 * 60 * 24));
 }
 
-// 更新通知（機能 D）：継続中でもうすぐ更新（または過ぎている）ものを抽出
+// base の「日」を保ったまま months か月進める（月末は月の最終日にクランプ）
+function addMonthsClamped(base: Date, months: number): Date {
+  const day = base.getDate();
+  const first = new Date(base.getFullYear(), base.getMonth() + months, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  return new Date(first.getFullYear(), first.getMonth(), Math.min(day, lastDay));
+}
+
+// 次回更新日：サブスクは毎月更新なので、保存された支払日を
+// 今日以降になるまで 1 か月ずつ繰り上げた日付を返す。
+// （過去の受信日をそのまま「◯日前」と表示する不具合を防ぐ）
+export function nextRenewal(billingDate: Date): Date {
+  const today = new Date();
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let n = 0;
+  let d = addMonthsClamped(billingDate, 0);
+  while (d < t0) {
+    n += 1;
+    d = addMonthsClamped(billingDate, n);
+  }
+  return d;
+}
+
+// 更新通知（機能 D）：継続中で次回更新が SOON_DAYS 日以内のものを抽出
 export function upcomingRenewals(subs: Sub[]) {
+  const days = (s: Sub) => daysUntil(nextRenewal(s.billingDate));
   return subs
-    .filter((s) => s.isActive && daysUntil(s.billingDate) <= SOON_DAYS)
-    .sort((a, b) => daysUntil(a.billingDate) - daysUntil(b.billingDate));
+    .filter((s) => s.isActive && days(s) <= SOON_DAYS)
+    .sort((a, b) => days(a) - days(b));
 }
 
 export const soonDays = SOON_DAYS;

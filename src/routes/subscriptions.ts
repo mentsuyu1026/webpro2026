@@ -24,18 +24,31 @@ function currentUserId(req: any): number {
   return req.session.userId as number;
 }
 
-// トップ（ダッシュボード）：一覧・合計・更新通知をまとめて表示（機能 B・D）
-router.get("/", async (req, res) => {
+// トップ（ダッシュボード）：一覧・合計・更新通知・カレンダーを表示（機能 B・D）
+router.get("/", async (req: any, res) => {
   const userId = currentUserId(req);
   const user = await getUserById(userId);
   const subscriptions = await service.listSubscriptions(userId);
+
+  // カレンダー用データ（月次更新なので「日」だけあればよい）
+  const calendarData = subscriptions
+    .filter((s) => s.isActive)
+    .map((s) => ({
+      name: s.name,
+      price: s.price,
+      day: s.billingDate.getDate(), // 毎月この日に更新
+    }));
+
   res.render("index", {
     user,
+    picture: req.session.picture ?? null,
     subscriptions,
     total: service.totalMonthly(subscriptions),
     upcoming: service.upcomingRenewals(subscriptions),
     soonDays: service.soonDays,
     daysUntil: service.daysUntil,
+    nextRenewal: service.nextRenewal,
+    calendarData,
     flash: req.query.msg ?? null,
   });
 });

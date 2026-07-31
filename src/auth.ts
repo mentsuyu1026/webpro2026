@@ -81,6 +81,7 @@ authRouter.get("/auth/google/callback", async (req: any, res) => {
     });
 
     req.session.userId = user.id;
+    req.session.picture = me.data.picture ?? null; // Google プロフィール画像 URL
     res.redirect("/");
   } catch (e) {
     console.error("Google ログインに失敗:", e);
